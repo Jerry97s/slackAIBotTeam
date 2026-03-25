@@ -32,7 +32,7 @@ namespace slackbot.Services
                     var aiService = scope.ServiceProvider.GetRequiredService<AiTeamService>();
 
                     // 사용자가 지정한 고정 채널 ID (정기 회의방)
-                    string fixedChannelId = "C0ANSQHRY5P";
+                    string fixedChannelId = "슬랙채널ID";
                     
                     // 봇이 한 번이라도 대화/관찰했던 활성 채널 + 고정 채널을 합칩니다.
                     var channels = aiService.GetActiveChannels().ToList();
