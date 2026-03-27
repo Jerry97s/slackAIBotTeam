@@ -66,6 +66,9 @@ namespace slackbot.Controllers
                 if (string.IsNullOrEmpty(text))
                     return;
 
+                // 글로벌 채널 ID (각 `if` 블록에서 중복 사용 방지)
+                string channelId = eventDetail.Channel ?? "unknown-channel";
+
                 // Remove the bot mention (e.g. <@U12345ABC> or similar)
                 text = System.Text.RegularExpressions.Regex.Replace(text, @"<@[A-Z0-9]+>\s*", "").Trim();
 
@@ -80,7 +83,7 @@ namespace slackbot.Controllers
                 }
 
                 // --- 1. 자동 오케스트레이션(토론/회의) 모드 ---
-                if (text.StartsWith("회의:") || text.StartsWith("토론:"))
+                if (text.StartsWith("회의:") || text.StartsWith("회의 :") || text.StartsWith("토론:") || text.StartsWith("토론 :"))
                 {
                     if (detectedPersona != "pm") return; // 중복 실행 방지
 
@@ -113,7 +116,7 @@ namespace slackbot.Controllers
                 }
 
                 // --- 2. 자동 소프트웨어 개발 파이프라인 모드 ---
-                if (text.StartsWith("개발:"))
+                if (text.StartsWith("개발:") || text.StartsWith("개발 :"))
                 {
                     if (detectedPersona != "pm") return; // 중복 실행 방지
 
@@ -147,8 +150,39 @@ namespace slackbot.Controllers
                     await _slackService.PostMessageAsync(sessionChannelId, "*[TEAM LEAD]*\n모든 개발 및 QA 절차가 완료되었습니다. 위 산출물과 테스트 케이스를 확인해 주세요.", "default");
                     return;
                 }
+
+                // --- 3. 설정 변경 명렁어 모드 ---
+                if (text.StartsWith("주기변경:") || text.StartsWith("주기변경 :"))
+                {
+                    if (detectedPersona != "pm") return; // 중복 방지
+                    string numStr = text.Substring(text.IndexOf(":") + 1).Trim();
+                    
+                    if (int.TryParse(numStr, out int seconds) && seconds >= 10)
+                    {
+                        _aiService.MeetingIntervalSeconds = seconds;
+                        await _slackService.PostMessageAsync(channelId, $"*[SYSTEM]*\n타이머 설정 업데이트: 앞으로 정기 회의가 {seconds}초 주기로 실행됩니다.", "default");
+                    }
+                    else
+                    {
+                        await _slackService.PostMessageAsync(channelId, "*[SYSTEM]*\n오류: 주기변경 명령어 뒤에는 최소 10 이상의 숫자를 적어주세요. (예: `주기변경: 60`)", "default");
+                    }
+                    return;
+                }
+
+                if (text.StartsWith("분야변경:") || text.StartsWith("분야변경:"))
+                {
+                    if (detectedPersona != "pm") return; // 중복 방지
+                    string newField = text.Substring(text.IndexOf(":") + 1).Trim();
+
+                    if (!string.IsNullOrEmpty(newField))
+                    {
+                        _aiService.MeetingTopicField = newField;
+                        await _slackService.PostMessageAsync(channelId, $"*[SYSTEM]*\n정기 회의 토론 주제 분야가 업데이트되었습니다.\n앞으로 발제자는 '{newField}' 에 관련된 주제로 회의를 엽니다.", "default");
+                    }
+                    return;
+                }
                 
-                // --- 3. 봇 자신을 직접 호출했는지 일반 대화 검사 (예: "dev 알려줘", "dev님", "dev:") ---
+                // --- 4. 봇 자신을 직접 호출했는지 일반 대화 검사 (예: "dev 알려줘", "dev님", "dev:") ---
                 string pattern = $@"^{detectedPersona}(님|야)?([\s,:]+|$)";
                 if (!System.Text.RegularExpressions.Regex.IsMatch(text, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase))
                 {
@@ -163,9 +197,6 @@ namespace slackbot.Controllers
                     "", 
                     System.Text.RegularExpressions.RegexOptions.IgnoreCase
                 ).Trim();
-
-                // 현재 채널 ID 파악
-                string channelId = eventDetail.Channel ?? "unknown-channel";
 
                 // 히스토리에 방금 들어온 최신 유저 메시지 먼저 추가 (" User" 라는 발신자로)
                 _aiService.AddMessageToHistory(channelId, "User", userPrompt);

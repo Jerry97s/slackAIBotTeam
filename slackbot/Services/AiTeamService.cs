@@ -17,6 +17,10 @@ namespace slackbot.Services
         // 메모리 기반의 간단한 채널별 대화 기록(히스토리) 저장소
         private readonly Dictionary<string, List<string>> _chatHistory = new();
 
+        // 정기 회의 동적 설정 상태
+        public int MeetingIntervalSeconds { get; set; } = 3600; // 기본 1시간
+        public string MeetingTopicField { get; set; } = "실무적인 SW/IT 프로젝트"; // 기본 토론 분야
+
         public AiTeamService(IConfiguration configuration)
         {
             _httpClient = new HttpClient();
@@ -113,8 +117,7 @@ namespace slackbot.Services
             
             string knowledge = GetKnowledgeBase();
             string systemPrompt = $@"당신은 IT 회사의 핵심 서비스 기획자(PLANNER)입니다.
-팀원들이 1시간 동안 열띠게 토론할 만한 '실무적인 SW/IT 프로젝트 토론 주제' 1가지를 새롭게 발제하세요.
-(예: 'MSA 전환의 장단점', '새로운 소셜 로그인 기능 도입', '로그인 성능 최적화 방안' 등)
+팀원들이 열띠게 토론할 만한 '{MeetingTopicField}' 관련 토론 주제 1가지를 새롭게 발제하세요.
 
 [과거에 우리 팀이 이미 논의했던 주제와 결론들]
 {knowledge}

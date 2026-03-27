@@ -18,18 +18,28 @@ namespace slackbot.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            int elapsedSeconds = 0;
+
             while (!stoppingToken.IsCancellationRequested)
             {
-                // 1시간 주기로 대기합니다. 
-                // (테스트를 원하시면 TimeSpan.FromSeconds(60) 처럼 시간을 줄여서 확인해 보세요)
-                //await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                // 실시간으로 명령어(주기 시간 변경)에 즉각 반응하기 위해 1초마다 루프를 돌며 카운트합니다.
+                await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+                elapsedSeconds++;
                 
                 try
                 {
                     using var scope = _serviceProvider.CreateScope();
                     var slackService = scope.ServiceProvider.GetRequiredService<SlackMessageService>();
                     var aiService = scope.ServiceProvider.GetRequiredService<AiTeamService>();
+
+                    // 주기가 다 차지 않았으면 아직 회의를 열지 않고 넘어갑니다.
+                    if (elapsedSeconds < aiService.MeetingIntervalSeconds)
+                    {
+                        continue;
+                    }
+                    
+                    // 도달했다면 카운터 초기화
+                    elapsedSeconds = 0;
 
                     // 사용자가 지정한 고정 채널 ID (정기 회의방)
                     string fixedChannelId = "C0ANSQHRY5P";
