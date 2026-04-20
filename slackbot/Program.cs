@@ -1,6 +1,7 @@
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+//cmd -> ngrok http https://localhost:7074 실행 필요
 
 builder.Services.AddControllers();
 builder.Services.AddSingleton<slackbot.Services.AiTeamService>();
