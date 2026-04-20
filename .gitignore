@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local configuration (Slack tokens, OpenAI key) — use appsettings.example.json
+slackbot/appsettings.json
